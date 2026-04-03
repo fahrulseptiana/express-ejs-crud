@@ -94,3 +94,23 @@ exports.deleteContact = async (req, res, next) => {
     next(err);
   }
 };
+
+// Export contacts to JSON
+exports.exportContacts = async (req, res, next) => {
+  try {
+    const { search = '', sort = 'name', order = 'asc' } = req.query;
+    const result = await ContactModel.findAll({
+      page: 1,
+      limit: 10000, // Get all contacts
+      search,
+      sort,
+      order
+    });
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=contacts.json');
+    res.json(result.contacts);
+  } catch (err) {
+    next(err);
+  }
+};
