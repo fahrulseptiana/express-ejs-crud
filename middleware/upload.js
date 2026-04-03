@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { supabase } = require('../config/supabase');
 
 // Ensure upload directory exists
 const uploadDir = 'public/uploads/contacts';
@@ -39,4 +40,49 @@ const upload = multer({
   }
 });
 
-module.exports = upload;
+// Upload to Supabase Storage if configured
+async function uploadToSupabase(file) {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+  
+  const fileBuffer = fs.readFileSync(file.path);
+  const fileName = `contacts/${Date.now()}-${path.basename(file.filename)}`;
+  
+  const { data, error } = await supabase.storage
+    .from('contact-photos')
+    .upload(fileName, fileBuffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('contact-photos')
+    .getPublicUrl(fileName);
+  
+  return urlData.publicUrl;
+}
+
+// Delete from Supabase Storage
+async function deleteFromSupabase(photoUrl) {
+  if (!supabase || !photoUrl) return;
+  
+  // Extract file name from URL
+  const urlParts = photoUrl.split('/');
+  const fileName = urlParts.slice(-2).join('/'); // Gets "contacts/filename"
+  
+  const { error } = await supabase.storage
+    .from('contact-photos')
+    .remove([fileName]);
+  
+  if (error) {
+    console.error('Failed to delete from Supabase:', error.message);
+  }
+}
+
+module.exports = { upload, uploadToSupabase, deleteFromSupabase };

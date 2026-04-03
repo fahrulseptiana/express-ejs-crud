@@ -1,8 +1,10 @@
 const ContactModel = require('../models/ContactModel');
 const fs = require('fs');
 const path = require('path');
+const { supabase } = require('../config/supabase');
+const { uploadToSupabase, deleteFromSupabase } = require('../middleware/upload');
 
-const deletePhoto = (photoUrl) => {
+const deleteLocalPhoto = (photoUrl) => {
   if (!photoUrl) return;
   const filePath = path.join(__dirname, '..', 'public', photoUrl);
   if (fs.existsSync(filePath)) {
@@ -45,7 +47,19 @@ exports.createContact = async (req, res, next) => {
     if (await ContactModel.checkPhoneExists(phone)) {
       return next(new Error('Phone number already exists'));
     }
-    const photo_url = req.file ? '/uploads/contacts/' + req.file.filename : null;
+    
+    let photo_url = null;
+    if (req.file) {
+      // Use Supabase if configured, otherwise use local storage
+      if (supabase) {
+        photo_url = await uploadToSupabase(req.file);
+        // Delete local file after successful upload
+        deleteLocalPhoto('/uploads/contacts/' + req.file.filename);
+      } else {
+        photo_url = '/uploads/contacts/' + req.file.filename;
+      }
+    }
+    
     await ContactModel.create({ name, phone, photo_url });
     res.redirect('/?message=Contact created successfully');
   } catch (err) {
@@ -71,11 +85,27 @@ exports.updateContact = async (req, res, next) => {
     if (await ContactModel.checkPhoneExists(phone, req.params.id)) {
       return next(new Error('Phone number already exists'));
     }
+
     let photo_url = contact.photo_url;
     if (req.file) {
-      if (contact.photo_url) deletePhoto(contact.photo_url);
-      photo_url = '/uploads/contacts/' + req.file.filename;
+      // Delete old photo
+      if (contact.photo_url) {
+        if (supabase) {
+          await deleteFromSupabase(contact.photo_url);
+        } else {
+          deleteLocalPhoto(contact.photo_url);
+        }
+      }
+      
+      // Upload new photo
+      if (supabase) {
+        photo_url = await uploadToSupabase(req.file);
+        deleteLocalPhoto('/uploads/contacts/' + req.file.filename);
+      } else {
+        photo_url = '/uploads/contacts/' + req.file.filename;
+      }
     }
+
     await ContactModel.update(req.params.id, { name, phone, photo_url });
     res.redirect('/?message=Contact updated successfully');
   } catch (err) {
@@ -87,7 +117,16 @@ exports.deleteContact = async (req, res, next) => {
   try {
     const contact = await ContactModel.findById(req.params.id);
     if (!contact) return res.status(404).send('Contact not found');
-    if (contact.photo_url) deletePhoto(contact.photo_url);
+    
+    // Delete photo
+    if (contact.photo_url) {
+      if (supabase) {
+        await deleteFromSupabase(contact.photo_url);
+      } else {
+        deleteLocalPhoto(contact.photo_url);
+      }
+    }
+    
     await ContactModel.delete(req.params.id);
     res.redirect('/?message=Contact deleted successfully');
   } catch (err) {
