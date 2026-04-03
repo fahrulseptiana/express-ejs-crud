@@ -12,6 +12,13 @@ const deleteLocalPhoto = (photoUrl) => {
   }
 };
 
+// Delete temp file after upload (used with Supabase)
+const deleteTempFile = (filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
+
 exports.getAllContacts = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = '', sort = 'name', order = 'asc' } = req.query;
@@ -53,8 +60,8 @@ exports.createContact = async (req, res, next) => {
       // Use Supabase if configured, otherwise use local storage
       if (supabase) {
         photo_url = await uploadToSupabase(req.file);
-        // Delete local file after successful upload
-        deleteLocalPhoto('/uploads/contacts/' + req.file.filename);
+        // Delete temp file after successful upload
+        deleteTempFile(req.file.path);
       } else {
         photo_url = '/uploads/contacts/' + req.file.filename;
       }
@@ -100,7 +107,7 @@ exports.updateContact = async (req, res, next) => {
       // Upload new photo
       if (supabase) {
         photo_url = await uploadToSupabase(req.file);
-        deleteLocalPhoto('/uploads/contacts/' + req.file.filename);
+        deleteTempFile(req.file.path);
       } else {
         photo_url = '/uploads/contacts/' + req.file.filename;
       }
@@ -145,7 +152,6 @@ exports.exportContacts = async (req, res, next) => {
       sort,
       order
     });
-
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename=contacts.json');
     res.json(result.contacts);

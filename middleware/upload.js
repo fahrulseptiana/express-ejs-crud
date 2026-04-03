@@ -3,16 +3,21 @@ const path = require('path');
 const fs = require('fs');
 const { supabase } = require('../config/supabase');
 
-// Ensure upload directory exists
+// Only create upload directory if Supabase is NOT configured (local storage)
 const uploadDir = 'public/uploads/contacts';
-if (!fs.existsSync(uploadDir)) {
+if (!supabase && !fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // Configure multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    // Skip if Supabase is configured (files go to cloud)
+    if (supabase) {
+      cb(null, '/tmp'); // Temp directory for processing
+    } else {
+      cb(null, uploadDir);
+    }
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
