@@ -5,8 +5,15 @@ const { supabase } = require('../config/supabase');
 
 // Only create upload directory if Supabase is NOT configured (local storage)
 const uploadDir = 'public/uploads/contacts';
-if (!supabase && !fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+if (!supabase) {
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+  } catch (err) {
+    // Directory creation might fail in serverless - that's okay, we'll use /tmp
+    console.log('Local upload directory not available, using temp directory');
+  }
 }
 
 // Configure multer storage
@@ -36,7 +43,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Create upload middleware
+// Create upload middleware - export as default for upload.single()
 const upload = multer({
   storage,
   fileFilter,
@@ -90,4 +97,7 @@ async function deleteFromSupabase(photoUrl) {
   }
 }
 
-module.exports = { upload, uploadToSupabase, deleteFromSupabase };
+// Export both the default upload and the helper functions
+module.exports = upload;
+module.exports.uploadToSupabase = uploadToSupabase;
+module.exports.deleteFromSupabase = deleteFromSupabase;
