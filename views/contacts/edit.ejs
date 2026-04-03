@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Contact - Contact Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white shadow-sm border-b" role="navigation" aria-label="Main navigation">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+      <a href="/" class="text-2xl font-bold text-gray-800">Contact Manager</a>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <a href="/" class="text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded mb-4 inline-block">&larr; Back to Contacts</a>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <h1 class="text-xl font-bold mb-4">Edit Contact</h1>
+      
+      <form method="POST" action="/contacts/<%= contact.id %>" enctype="multipart/form-data" class="space-y-4">
+        <input type="hidden" name="existing_photo" value="<%= contact.photo_url || '' %>">
+        
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-red-500" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+          <input type="text" id="name" name="name" value="<%= contact.name %>" required aria-required="true" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        
+        <div>
+          <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone <span class="text-red-500" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+          <input type="tel" id="phone" name="phone" value="<%= contact.phone %>" required aria-required="true" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        
+        <div>
+          <label for="photo" class="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+          <% if (contact.photo_url) { %>
+            <div class="mb-2">
+              <img src="<%= contact.photo_url %>" alt="Current photo of <%= contact.name %>" class="w-24 h-24 object-cover rounded">
+              <p class="text-sm text-gray-500">Current photo</p>
+            </div>
+          <% } %>
+          <input type="file" id="photo" name="photo" accept="image/*" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-describedby="photo-hint">
+          <p id="photo-hint" class="text-sm text-gray-500 mt-1">Accepted formats: jpg, png, gif, webp. Max size: 5MB.</p>
+          <div id="preview" class="mt-2 hidden" role="img" aria-label="Photo preview">
+            <img id="preview-img" class="w-24 h-24 object-cover rounded" alt="New photo preview">
+          </div>
+        </div>
+        
+        <div class="flex gap-2">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Update</button>
+          <a href="/" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('photo').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const preview = document.getElementById('preview');
+      const previewImg = document.getElementById('preview-img');
+      if (file) {
+        previewImg.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+        preview.setAttribute('aria-label', 'Preview of ' + file.name);
+      } else {
+        preview.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
