@@ -10,5 +10,6 @@ router.post('/contacts', upload.single('photo'), validateContact, validateFileUp
 router.get('/contacts/:id/edit', contactController.showEditForm);
 router.post('/contacts/:id', upload.single('photo'), validateContact, validateFileUpload, contactController.updateContact);
 router.post('/contacts/:id/delete', contactController.deleteContact);
+router.get('/contacts/export', contactController.exportContacts);
 
 module.exports = router;
